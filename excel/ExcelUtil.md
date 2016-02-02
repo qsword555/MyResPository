@@ -1,5 +1,222 @@
-package org.qipeng.excel.support;
+本工具类可以将一个List<Bean>输出成2003或者2007的Excel，使用方式仅仅需要在Bean中将需要输出的属性名称添加上`@ExcelResource`这个Annotation即可。
 
+代码位于：[github](https://github.com/qsword555/MyRespository)上的excel工程下
+
+需要的依赖：
+```xml
+<properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  	<poi.version>3.9</poi.version>
+    <jdk.version>1.7</jdk.version>
+  </properties>
+
+  <dependencies>
+   		<!-- apache poi -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>${poi.version}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>${poi.version}</version>
+		</dependency>
+		
+		<!-- apache commons -->
+		<dependency>
+			<groupId>commons-beanutils</groupId>
+			<artifactId>commons-beanutils</artifactId>
+			<version>1.9.2</version>
+		</dependency>
+		
+		<!-- 测试依赖 -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
+		
+  </dependencies>
+```
+
+`@ExcelResource`这个Annotation的定义如下：
+```java
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/**
+ * 定义一个用于标识Excel字段资源的annotation
+ * @author Administrator
+ *
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface ExcelResource {
+ 
+	/**
+	 * 对应Excel的标题，如果不设置，默认为属性名称
+	 * @return
+	 */
+    String title() default "";          
+    
+    /**
+	 * 对应Excel输出时的column顺序
+	 * @return
+	 */
+    int order() default 9999;           
+ 
+    /**
+     * 对应需要转化的值
+     * 例如：支持String,char,boolean等等很多类型
+     * @ExcelResource(keyValue={"M=男","F=女"})
+     * @ExcelResource(keyValue={"true=是","false=否"})
+     * 更复杂的转换请使用converter()
+     * @return
+     */
+    String[] keyValue() default {""};  
+ 
+    /**
+     * 快速处理日期转换，支持如下类型日期的转换
+     * java.sql.Date
+     * java.util.Date
+     * java.sql.Timestamp
+     * java.util.Canendar
+     * java.lang.Long(long)
+     * 例如：
+     * @ExcelResource(dateFormat="yyyy-MM-dd HH:mm:ss")
+     * @return
+     */
+    String dateFormat() default "";    
+    
+    /**
+     * 当遇到复杂转换的时候，可以写个转换器，转换器需要继承自ExcelDataConverter
+     * 来进行复杂的转换
+     * @return
+     */
+    Class<? extends ExcelDataConverter> converter() default ExcelDataConverter.Void.class;
+ 
+}
+```
+
+然后定义一个用于保存Excel的header的实体bean，这个实体bean实现了`Comparable` 接口，用于对定义Excel输出的顺序
+`ExcelHeader`代码如下：
+```java
+import java.util.HashMap;
+import java.util.Map;
+
+public class ExcelHeader implements Comparable<ExcelHeader>{
+	 
+    private String title;   //标题
+ 
+    private int order;     //标题排序
+ 
+    private String fieldName;   //标题对应的类的字段的名称那个
+ 
+    private String dateFormat;  //日期的格式
+ 
+    private Map<String,String> map = new HashMap<String,String>();  //需要替换的值
+    
+    private static Map<String,ExcelDataConverter> converterMap = new HashMap<String,ExcelDataConverter>();
+ 
+    public ExcelHeader(String title, int order, String fieldName) {
+    	this.title = title;
+    	this.order = order;
+    	this.fieldName = fieldName;
+	}
+    
+	public ExcelHeader() {
+		super();
+	}
+
+	public int compareTo(ExcelHeader o) {
+        return order>o.order?1:(order<o.order?-1:0);
+    }
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
+	}
+
+	public int getOrder() {
+		return order;
+	}
+
+	public void setOrder(int order) {
+		this.order = order;
+	}
+
+	public String getFieldName() {
+		return fieldName;
+	}
+
+	public void setFieldName(String fieldName) {
+		this.fieldName = fieldName;
+	}
+
+	public String getDateFormat() {
+		return dateFormat;
+	}
+
+	public void setDateFormat(String dateFormat) {
+		this.dateFormat = dateFormat;
+	}
+
+	public Map<String, String> getMap() {
+		return map;
+	}
+
+	public void setMap(Map<String, String> map) {
+		this.map = map;
+	}
+
+	public static void addConverters(String filedName,Class<?> clz) {
+		try {
+			converterMap.put(filedName, (ExcelDataConverter)clz.newInstance());
+		} catch (InstantiationException | IllegalAccessException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static Map<String,ExcelDataConverter> getConverters() {
+		return converterMap;
+	}
+	
+}
+```
+如果需要复杂的转换则需要继承转换器`ExcelDataConverter`
+```java
+public abstract class ExcelDataConverter {
+
+	public abstract Object convertFromString(String str);
+	
+	public abstract String convertToString(Object t);
+	
+	public static class Void extends ExcelDataConverter{
+
+		@Override
+		public Object convertFromString(String str) {
+			return null;
+		}
+
+		@Override
+		public String convertToString(Object t) {
+			return null;
+		}
+		
+	}
+}
+```
+
+最后是我们的`ExcelUtil`这个类，可以调用export2Excel来将对象集合输出到Excel，或者调用importFromExcel将Excel反序列化到实体对象集合
+```java
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,6 +268,7 @@ public class ExcelUtil {
     public static int getNumberOfSheet(Workbook workbook) {
         return workbook == null ? 0 : workbook.getNumberOfSheets();
     }
+ 
  
     /**
      * 根据对象的annotation或得的信息构建excel标题对象的list
@@ -324,6 +542,7 @@ public class ExcelUtil {
  
     }
  
+ 
     /**
      * 对象中的属性的值转化为excel的值
      * @param obj
@@ -440,6 +659,7 @@ public class ExcelUtil {
 		}
     }
     
+ 
     /**
      * 将一个Map的key value反转
      * @param map
@@ -457,4 +677,203 @@ public class ExcelUtil {
         return newMap;
     }
  
+ 
 }
+```
+###测试###
+测试实体Vo
+```java
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.text.ParseException;
+import java.util.Date;
+
+import org.qipeng.excel.support.ExcelDataConverter;
+import org.qipeng.excel.support.ExcelResource;
+
+public class UserVo {
+
+	//不需要输出，不用加注解即可
+	private int id;           
+	
+	@ExcelResource(title="姓名",order=1)
+	private String name;
+	
+	@ExcelResource(title="是否结婚",order=4,keyValue={"true=是","false=否"})
+	private boolean married;
+	
+	@ExcelResource(title="性别",order=2,keyValue={"F=女","M=男"})
+	private char sex;
+	
+	@ExcelResource(title="财富",order=5,converter=MoneyConverter.class)
+	private BigDecimal money;
+	
+	@ExcelResource(title="年龄",order=3)
+	private int age;
+	
+	@ExcelResource(title="生日",order=6,dateFormat="yyyy-MM-dd")
+	private java.util.Date utilDate;
+	
+	@ExcelResource(order=7,dateFormat="yyyyMMdd")
+	private java.sql.Date sqlDate;
+	
+	@ExcelResource(order=8,dateFormat="yyyy/MM/dd")
+	private java.util.Calendar calendar;
+	
+	@ExcelResource(order=9,dateFormat="yyyy-MM-dd HH:mm:ss.SSS")
+	private long baseLongDate;
+	
+	@ExcelResource(order=10,dateFormat="yyyy年MM月dd日 HH时mm分ss秒")
+	private Long longDate;
+	
+	@ExcelResource(order=11,dateFormat="yyyyMMddHHmmssSSS")
+	private java.sql.Timestamp timeStamp;
+	
+	//转换器
+	public static class MoneyConverter extends ExcelDataConverter{
+
+		@Override
+		public Object convertFromString(String str) {
+			if(str!=null && str.trim().length()>0){
+				NumberFormat nf = new DecimalFormat("#,###.####");
+				try {
+					return new BigDecimal(nf.parse(str).toString());
+				} catch (ParseException e) {
+					e.printStackTrace();
+				}
+			}
+			return null;
+		}
+
+		@Override
+		public String convertToString(Object t) {
+			if(t!=null){
+				if(t instanceof BigDecimal){
+					BigDecimal num = (BigDecimal) t;
+					NumberFormat nf = new DecimalFormat("#,###.####");
+					return nf.format(num);
+				}
+				return t.toString();
+			}
+			return null;
+		}
+		
+	}
+	
+	public UserVo(int id, String name, boolean married, char sex, BigDecimal money, int age, Date utilDate) {
+		super();
+		this.id = id;
+		this.name = name;
+		this.married = married;
+		this.sex = sex;
+		this.money = money;
+		this.age = age;
+		this.utilDate = utilDate;
+	}
+	
+	public UserVo() {
+		super();
+	}
+
+    //setter和getter还有toString()略
+	
+}
+```
+测试代码：
+```java
+import static org.junit.Assert.*;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import org.junit.Test;
+import org.qipeng.excel.support.ExcelUtil;
+
+public class TestExcel {
+
+	@Test
+	public void testExport() throws FileNotFoundException{
+		UserVo vo1 = new UserVo(1,"张三",false,'M',new BigDecimal("200000"),21,new Date());
+		vo1.setSqlDate(new java.sql.Date(new Date().getTime()));
+		vo1.setCalendar(Calendar.getInstance());
+		vo1.setLongDate(new Date().getTime());
+		vo1.setBaseLongDate(new Date().getTime());
+		vo1.setTimeStamp(new Timestamp(new Date().getTime()));
+		
+		UserVo vo2 = new UserVo(2,"大花",true,'F',new BigDecimal("80000"),22,new Date());
+		vo2.setSqlDate(new java.sql.Date(new Date().getTime()));
+		vo2.setCalendar(Calendar.getInstance());
+		vo2.setLongDate(new Date().getTime());
+		vo2.setBaseLongDate(new Date().getTime());
+		vo2.setTimeStamp(new Timestamp(new Date().getTime()));
+		
+		List<UserVo> list = new ArrayList<UserVo>();
+		list.add(vo1);
+		list.add(vo2);
+		
+		OutputStream os = new FileOutputStream("d:\\1.xls");
+		ExcelUtil.export2Excel(list,"测试", os, false,"序号");
+		
+		os = new FileOutputStream("d:\\2.xls");
+		ExcelUtil.export2Excel(list,"测试", os, false,null);
+		
+		os = new FileOutputStream("d:\\3.xlsx");
+		ExcelUtil.export2Excel(list,"测试", os, true,"序号");
+		
+		os = new FileOutputStream("d:\\4.xlsx");
+		ExcelUtil.export2Excel(list,"测试",os, true,null);
+	}
+	
+	@Test
+	public void testImport() throws FileNotFoundException{
+		InputStream is = new FileInputStream("d:\\1.xls");
+		List<UserVo> list = ExcelUtil.importFromExcel(is,null,UserVo.class,0);
+		assertTrue(list.size()==2);
+		
+		for (UserVo userVo : list) {
+			System.out.println(userVo);
+		}
+		
+		System.out.println("==============================");
+		list=null;
+		is = new FileInputStream("d:\\2.xls");
+		list = ExcelUtil.importFromExcel(is,null,UserVo.class,0);
+		assertTrue(list.size()==2);
+		
+		for (UserVo userVo : list) {
+			System.out.println(userVo);
+		}
+		
+		System.out.println("==============================");
+		list=null;
+		is = new FileInputStream("d:\\3.xlsx");
+		list = ExcelUtil.importFromExcel(is,null,UserVo.class,0);
+		assertTrue(list.size()==2);
+		
+		for (UserVo userVo : list) {
+			System.out.println(userVo);
+		}
+		
+		System.out.println("==============================");
+		list=null;
+		is = new FileInputStream("d:\\4.xlsx");
+		list = ExcelUtil.importFromExcel(is,null,UserVo.class,0);
+		assertTrue(list.size()==2);
+		
+		for (UserVo userVo : list) {
+			System.out.println(userVo);
+		}
+	}
+
+}
+```

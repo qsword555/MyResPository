@@ -17,7 +17,6 @@ public class ExcelHeader implements Comparable<ExcelHeader>{
     
     private static Map<String,ExcelDataConverter> converterMap = new HashMap<String,ExcelDataConverter>();  
     
- 
     public ExcelHeader(String title, int order, String fieldName) {
     	this.title = title;
     	this.order = order;
@@ -27,7 +26,6 @@ public class ExcelHeader implements Comparable<ExcelHeader>{
 	public ExcelHeader() {
 		super();
 	}
-
 
 	public int compareTo(ExcelHeader o) {
         return order>o.order?1:(order<o.order?-1:0);
@@ -72,7 +70,6 @@ public class ExcelHeader implements Comparable<ExcelHeader>{
 	public void setMap(Map<String, String> map) {
 		this.map = map;
 	}
-
 
 	public static void addConverters(String filedName,Class<?> clz) {
 		try {

@@ -1,11 +1,9 @@
 package excel;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
-import java.util.Calendar;
 import java.util.Date;
 
 import org.qipeng.excel.support.ExcelDataConverter;
@@ -196,7 +194,5 @@ public class UserVo {
 				+ ", age=" + age + ", utilDate=" + utilDate + ", sqlDate=" + sqlDate + ", calendar=" + calendar
 				+ ", baseLongDate=" + baseLongDate + ", longDate=" + longDate + ", timeStamp=" + timeStamp + "]";
 	}
-	
-	
 	
 }
