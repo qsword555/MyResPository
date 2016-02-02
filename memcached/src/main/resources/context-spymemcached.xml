@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd
+		">
+	
+	<!-- 使用原生的spy的MemcachedClient进行操作 -->
+	<bean id="memcachedClient" class="net.spy.memcached.spring.MemcachedClientFactoryBean">
+		<property name="servers" value="${memcached.servers}"/>
+		<!-- 默认是TEXT(BINARY) -->
+		<property name="protocol" value="TEXT"/>
+		<!-- 默认是ARRAY_MOD(CONSISTENT) -->
+		<property name="locatorType" value="CONSISTENT"/>
+		<!-- 默认是2500毫秒 -->
+		<property name="opTimeout" value="2500" />
+	</bean>
+	
+	<!-- 对spy的MemcachedClient的进一步的封装 -->
+	<bean id="spyMemcachedClient" class="org.qipeng.memcached.support.SpyMemcachedClient">
+		<property name="memcachedClient" ref="memcachedClient"/>
+		<property name="shutdownTimeout" value="3000"/>
+		<property name="updateTimeout" value="2000"/>
+	</bean>
+	
+	
+</beans>
