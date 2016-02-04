@@ -22,7 +22,6 @@ import net.spy.memcached.MemcachedClient;
 import net.spy.memcached.internal.OperationFuture;
 
 @ContextConfiguration(locations={
-		"classpath:context-basic.xml",
 		"classpath:context-spymemcached.xml"
 })
 @RunWith(SpringJUnit4ClassRunner.class)

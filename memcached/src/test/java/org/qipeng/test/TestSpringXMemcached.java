@@ -18,7 +18,6 @@ import net.rubyeye.xmemcached.MemcachedClient;
 import net.rubyeye.xmemcached.exception.MemcachedException;
 
 @ContextConfiguration(locations={
-		"classpath:context-basic.xml",
 		"classpath:context-xmemcached.xml"
 })
 @RunWith(SpringJUnit4ClassRunner.class)
