@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd"
+	default-lazy-init="true">
+	
+	<description>使用JDK ScheduledExecutorService的定时任务配置</description>
+ 
+    <!-- 定期执行的业务类(会随着容器的启动，自动启动)
+            period:执行间隔（单位秒）
+            initialDelay:首次执行延时（单位秒）
+            shutdown时等待任务完成的时间（单位秒）
+            defTime:表示任务会在每天的defTime定义的时间执行，defTime的格式必须为HH:mm:ss
+     -->
+    <bean id="jdkExecutorJob" class="org.qipeng.scheduler.support.JdkSchedulerJob" lazy-init="false">
+        <!-- 配置方式1:间隔多久执行任务 
+        <property name="period" value="2" />
+        <property name="initialDelay" value="5" />
+        <property name="shutdownTimeout" value="20" />
+ 		-->
+ 		
+        <!-- 配置方式2:指定时间执行任务（每天到点执行）-->
+        <property name="defTime" value="15:25:00"/>
+        <property name="shutdownTimeout" value="20" />
+        
+    </bean>
+	
+</beans>

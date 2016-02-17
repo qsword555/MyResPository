@@ -1,0 +1,21 @@
+#redis JedisPool
+redis.host=127.0.0.1
+redis.port=6379
+redis.timeout=3000
+#redis.password=nick123
+
+#最大连接数, 默认8个
+redis.pool.maxTotal=16
+#最大空闲连接数, 默认8个
+redis.pool.maxIdle=10
+#最小空闲连接数, 默认0
+redis.pool.minIdle=2
+#获取连接时的最大等待毫秒数(默认-1，表示不确定时间)
+redis.pool.maxWaitMillis=-1
+
+#在创建连接的时候检查有效性, 默认false
+redis.pool.testOnCreate=true
+#在获取连接的时候检查有效性, 默认false
+redis.pool.testOnBorrow=true
+#在返还连接的时候检查有效性, 默认false
+redis.pool.testOnReturn=true
